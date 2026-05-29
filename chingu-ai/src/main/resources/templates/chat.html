@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chingu AI Chat</title>
+    <style>
+        body { background: #0f0e17; color: #fffffe; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .chat-container { width: 100%; max-width: 600px; background: #16161e; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; height: 85vh; }
+        .chat-header { background: #6c5ce7; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 80%; }
+        .user-wrap { align-self: flex-end; align-items: flex-end; }
+        .ai-wrap { align-self: flex-start; align-items: flex-start; }
+        .bubble { padding: 12px; border-radius: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .user-bubble { background: #2d2a4a; border-radius: 15px 15px 0 15px; border: 1px solid #3f3b6c; }
+        .ai-bubble { background: #242433; border-radius: 15px 15px 15px 0; color: #a29bfe; border: 1px solid #2d2d3d; }
+        .label { font-size: 10px; font-weight: bold; color: #a29bfe; }
+        .time { font-size: 9px; color: #666; margin-top: 4px; }
+        .input-area { padding: 20px; background: #1a1a24; display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; background: #242433; border: 1px solid #333; padding: 12px; color: white; border-radius: 8px; outline: none; }
+        button { background: #6c5ce7; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .msg-image { max-width: 200px; border-radius: 8px; margin-top: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <strong>Chingu AI ✨</strong>
+        <form th:action="@{/chingu/ui/clear}" method="post">
+            <button type="submit" style="background:none; border:none; color:white; cursor:pointer;">🗑️</button>
+        </form>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div th:each="msg : ${history}" th:remove="tag">
+
+            <div th:if="${msg.userMessage != null}" class="msg-wrapper user-wrap">
+                <div class="bubble user-bubble">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="label">SEN</span>
+                        <span th:text="${msg.userMessage}"></span>
+                    </div>
+                    <img th:if="${msg.imagePath != null}"
+                         th:src="${msg.imagePath}"
+                         class="msg-image"
+                         onclick="this.style.maxWidth = this.style.maxWidth === '100%' ? '200px' : '100%'">
+                </div>
+                <small class="time" th:text="${msg.createdAt != null ? #temporals.format(msg.createdAt, 'HH:mm') : ''}"></small>
+            </div>
+
+            <div th:if="${msg.aiResponse != null}" class="msg-wrapper ai-wrap">
+                <div class="bubble ai-bubble">
+                    <span class="label">CHINGU</span>
+                    <span th:text="${msg.aiResponse}"></span>
+                </div>
+                <small class="time" th:text="${msg.createdAt != null ? #temporals.format(msg.createdAt, 'HH:mm') : ''}"></small>
+            </div>
+
+        </div>
+    </div>
+
+    <form class="input-area" th:action="@{/chingu/ui/chat}" method="post" enctype="multipart/form-data">
+        <input type="text" name="message" placeholder="Buraya yaz veya sadece görsel yükle..." autocomplete="off">
+        <label for="file-input" id="fileLabel" style="background: #242433; border: 1px solid #333; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+            🖼️
+        </label>
+        <input id="file-input" type="file" name="file" accept="image/*" style="display: none;"
+               onchange="updateFileLabel(this)">
+        <button type="submit">Gönder</button>
+    </form>
+</div>
+
+<script>
+    // Görsel seçilince label değişsin
+    function updateFileLabel(input) {
+        const label = document.getElementById("fileLabel");
+        if (input.files && input.files.length > 0) {
+            label.style.background = "#6c5ce7";
+            label.innerText = "✓";
+        } else {
+            label.style.background = "#242433";
+            label.innerText = "🖼️";
+        }
+    }
+
+    // Sayfa açılınca en alta kaydır
+    const chatBox = document.getElementById("chatBox");
+    chatBox.scrollTop = chatBox.scrollHeight;
+</script>
+</body>
+</html>
