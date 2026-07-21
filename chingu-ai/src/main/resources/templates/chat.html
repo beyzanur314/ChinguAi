@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chingu AI Chat</title>
+    <link th:href="@{https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #0f0e17;
+            color: #fffffe;
+            /* Korece, İngilizce ve Türkçeyi bir arada kırılmadan gösteren evrensel font ailesi */
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 🔲 ANA DÜZEN: Sol Sidebar ve Sağ Chat Alanını Yan Yana Tutan Ana Gövde */
+        .main-layout {
+            display: flex;
+            width: 100%;
+            max-width: 950px;
+            height: 85vh;
+            gap: 20px;
+        }
+
+        /* 📁 SIDEBAR: Sol Menü Tasarımı */
+        .sidebar {
+            width: 260px;
+            background: #16161e;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid #232330;
+            box-sizing: border-box;
+        }
+
+        /* ➕ YENİ SOHBET BUTONU */
+        .new-chat-btn {
+            background: #6c5ce7;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .new-chat-btn:hover { background: #5b4cdb; }
+        .new-chat-btn:active { transform: scale(0.98); }
+
+        /* 📜 SOHBET LİSTESİ KONTEYNERİ */
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+        .session-list::-webkit-scrollbar { width: 4px; }
+        .session-list::-webkit-scrollbar-thumb { background: #2d2d3d; border-radius: 4px; }
+
+        /* 💬 TEKİL SOHBET BAŞLIĞI LINKI (Gelişmiş CSS Taşma Korumalı) */
+        .session-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #fffffe;
+            padding: 11px 14px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border: 1px solid transparent;
+        }
+        .session-item:hover { background: #242433; color: #a29bfe; }
+
+        /* 📜 Yazının kendi alanında da kırpılmasını garanti altına alıyoruz */
+        .session-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        /* 🟣 AKTİF SOHBET İŞARETÇİSİ */
+        .session-item.active {
+            background: #2d2a4a;
+            border-color: #3f3b6c;
+            color: #a29bfe;
+            font-weight: bold;
+        }
+
+        /* 💬 SAĞ TARAF: CHAT WINDOW CONTAINER */
+        .chat-container {
+            flex: 1;
+            background: #16161e;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 1px solid #232330;
+        }
+
+        .chat-header { background: #6c5ce7; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-family: inherit; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg-wrapper { display: flex; flex-direction: column; max-width: 80%; }
+        .user-wrap { align-self: flex-end; align-items: flex-end; }
+        .ai-wrap { align-self: flex-start; align-items: flex-start; }
+
+        .bubble { padding: 12px; border-radius: 15px; display: flex; flex-direction: column; gap: 8px; font-family: inherit; line-height: 1.5; }
+        .user-bubble { background: #2d2a4a; border-radius: 15px 15px 0 15px; border: 1px solid #3f3b6c; color: #fffffe; }
+        .ai-bubble { background: #242433; border-radius: 15px 15px 15px 0; color: #a29bfe; border: 1px solid #2d2d3d; }
+
+        .label { font-size: 10px; font-weight: bold; color: #a29bfe; }
+        .time { font-size: 9px; color: #666; margin-top: 4px; }
+
+        /* Input Alanı Düzeni */
+        .input-area { padding: 15px 20px; background: #1a1a24; display: flex; gap: 12px; align-items: center; border-top: 1px solid #232330; }
+        input[type="text"] { flex: 1; background: #242433; border: 1px solid #333; padding: 12px 16px; color: white; border-radius: 10px; outline: none; font-size: 14px; transition: border 0.3s; font-family: inherit; }
+        input[type="text"]:focus { border-color: #6c5ce7; }
+
+        .upload-label, .mic-label { background: #242433; border: 1px solid #333; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #a29bfe; font-size: 18px; transition: all 0.3s ease; box-sizing: border-box; }
+        .upload-label:hover, .mic-label:hover { background: #2d2d3d; color: white; border-color: #6c5ce7; }
+
+        button[type="submit"] { background: #6c5ce7; border: none; color: white; padding: 0 22px; height: 44px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; gap: 8px; font-family: inherit; }
+        button[type="submit"]:hover { background: #5b4cdb; }
+        .msg-image { max-width: 200px; border-radius: 8px; margin-top: 6px; cursor: pointer; border: 1px solid #3f3b6c; }
+
+        .switch-account-btn { color: #dcd8ff; text-decoration: none; font-size: 14px; transition: color 0.2s ease, transform 0.2s ease; display: inline-flex; align-items: center; justify-content: center; margin-right: 2px; }
+        .switch-account-btn:hover { color: #fffffe; transform: rotate(45deg); }
+
+        .session-row:hover .delete-room-btn {
+            opacity: 1 !important;
+            transform: scale(1.1);
+        }
+        .delete-room-btn:hover {
+            color: #ff7675 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-layout">
+
+    <div class="sidebar">
+        <a th:href="@{/chingu/ui}" class="new-chat-btn">
+            <i class="fa-solid fa-plus"></i> Yeni Sohbet
+        </a>
+
+        <hr style="border: none; border-top: 1px solid #232330; margin: 0;">
+
+        <div class="session-list">
+            <div th:each="sess : ${sessions}" th:remove="tag">
+                <a th:href="@{/chingu/ui(sessionId=${sess.get('sessionId') ?: sess.get('session_id')})}"
+                   class="session-item"
+                   th:classappend="${(sess.get('sessionId') ?: sess.get('session_id')) == currentSessionId} ? 'active' : ''">
+                    <i class="fa-regular fa-message" style="color: #a29bfe; flex-shrink: 0;"></i>
+                    <span th:text="${sess.get('title') ?: sess.get('TITLE') ?: 'Sohbet Odası'}">Sohbet</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+
+        <div class="chat-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <a th:href="@{https://accounts.google.com/AccountChooser?continue=https://accounts.google.com/logout}"
+                   class="switch-account-btn"
+                   title="Hesap Değiştir / Farklı Hesapla Giriş Yap">
+                    <i class="fa-solid fa-user-gear"></i>
+                </a>
+                <strong>Chingu AI ✨ <span style="font-size: 12px; font-weight: normal;" th:text="'(' + ${username} + ')'"></span></strong>
+            </div>
+
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <form th:action="@{/chingu/ui/clear}" method="post" style="display:inline;">
+                    <input type="hidden" name="sessionId" th:value="${currentSessionId}" />
+                    <button type="submit" style="background:none; border:none; color:white; cursor:pointer; font-size: 16px; padding:0; height:auto;" title="Bu Sohbet Odasını Temizle">🗑️</button>
+                </form>
+                <form th:action="@{/logout}" method="post" style="display:inline;">
+                    <button type="submit" style="background:none; border:none; color:white; cursor:pointer; font-size: 14px; padding:0; height:auto;" title="Güvenli Çıkış">🚪 Çıkış</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <div th:each="msg : ${history}" th:remove="tag">
+
+                <div th:if="${msg.userMessage != null && !msg.userMessage.trim().isEmpty()}" class="msg-wrapper user-wrap">
+                    <div class="bubble user-bubble">
+                        <div style="display:flex; flex-direction: column; gap:4px;">
+                            <span class="label">SEN</span>
+                            <span th:text="${msg.userMessage}"></span>
+                        </div>
+                        <img th:if="${msg.imagePath != null}"
+                             th:src="${msg.imagePath}"
+                             class="msg-image"
+                             onclick="this.style.maxWidth = this.style.maxWidth === '100%' ? '200px' : '100%'">
+                    </div>
+                    <small class="time" th:text="${msg.createdAt != null ? #temporals.format(msg.createdAt, 'HH:mm') : ''}"></small>
+                </div>
+
+                <div th:if="${msg.aiResponse != null && !msg.aiResponse.trim().isEmpty()}" class="msg-wrapper ai-wrap">
+                    <div class="bubble ai-bubble">
+                        <span class="label">CHINGU</span>
+                        <span th:text="${msg.aiResponse}"></span>
+                    </div>
+                    <small class="time" th:text="${msg.createdAt != null ? #temporals.format(msg.createdAt, 'HH:mm') : ''}"></small>
+                </div>
+
+            </div>
+        </div>
+
+        <form class="input-area" id="chatForm" th:action="@{/chingu/ui/chat}" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+            <input type="hidden" name="sessionId" id="currentSessionIdField" th:value="${currentSessionId}" />
+
+            <label for="file-input" id="fileLabel" class="upload-label" title="Döküman (PDF, TXT) veya Resim Ekle">
+                <i class="fa-solid fa-paperclip"></i>
+            </label>
+            <input id="file-input" type="file" name="file" accept="image/*,application/pdf,text/plain" style="display: none;" onchange="updateFileLabel(this)">
+
+            <button type="button" id="micBtn" class="mic-label" title="Sesli Mesaj Kaydet">
+                <i class="fa-solid fa-microphone" id="micIcon"></i>
+            </button>
+
+            <input type="text" name="message" id="messageInput" placeholder="Mesaj yazın veya döküman yükleyin..." autocomplete="off">
+
+            <button type="submit">
+                <span>Gönder</span>
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const micBtn = document.getElementById("micBtn");
+    const micIcon = document.getElementById("micIcon");
+    const messageInput = document.getElementById("messageInput");
+    const currentSessionId = document.getElementById("currentSessionIdField").value;
+    const fileInput = document.getElementById("file-input");
+
+    // 🛡️ Boş Form Gönderim Koruması (Metin yoksa ama dosya varsa izin ver)
+    function validateForm() {
+        const hasText = messageInput.value.trim().length > 0;
+        const hasFile = fileInput.files.length > 0;
+
+        if (!hasText && !hasFile) {
+            alert("Lütfen bir mesaj yazın veya bir döküman ekleyin.");
+            return false;
+        }
+        return true;
+    }
+
+    micBtn.addEventListener("click", async () => {
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+
+                    messageInput.placeholder = "Sesiniz metne dönüştürülüyor... 🧠⏳";
+                    messageInput.disabled = true;
+                    micBtn.style.background = "#6c5ce7";
+
+                    const formData = new FormData();
+                    formData.append("audio", audioBlob, "voice_message.wav");
+                    formData.append("sessionId", currentSessionId);
+
+                    if (fileInput.files.length > 0) {
+                        formData.append("file", fileInput.files[0]);
+                    }
+
+                    try {
+                        const response = await fetch('/chingu/ui/chat/voice', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            alert("Ses dönüştürme sunucu tarafında başarısız oldu.");
+                            resetInputState();
+                        }
+                    } catch (err) {
+                        console.error("Ses post edilirken hata oluştu:", err);
+                        resetInputState();
+                    }
+
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                micBtn.style.background = "#ef4444";
+                micBtn.style.borderColor = "#ef4444";
+                micIcon.style.color = "white";
+                micIcon.className = "fa-solid fa-microphone-lines fa-pulse";
+                messageInput.placeholder = "Chingu dinliyor... Bitirmek için mikrofona tekrar dokunun 🔴";
+
+            } catch (err) {
+                alert("Mikrofon donanımına erişim izni verilmedi.");
+                console.error(err);
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+
+            micBtn.style.background = "#242433";
+            micBtn.style.borderColor = "#333";
+            micIcon.style.color = "#a29bfe";
+            micIcon.className = "fa-solid fa-microphone";
+        }
+    });
+
+    function resetInputState() {
+        messageInput.placeholder = "Mesaj yazın veya döküman yükleyin...";
+        messageInput.disabled = false;
+    }
+
+    function updateFileLabel(input) {
+        const label = document.getElementById("fileLabel");
+        if (input.files && input.files.length > 0) {
+            const file = input.files[0];
+            label.style.background = "#10b981";
+            label.style.color = "white";
+            label.style.borderColor = "#10b981";
+
+            if (file.type.includes("pdf")) {
+                label.innerHTML = '<i class="fa-solid fa-file-pdf"></i>';
+                label.setAttribute("title", "PDF Seçildi: " + file.name);
+            } else if (file.type.includes("text")) {
+                label.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
+                label.setAttribute("title", "TXT Seçildi: " + file.name);
+            } else {
+                label.innerHTML = '<i class="fa-solid fa-check"></i>';
+                label.setAttribute("title", "Görsel Seçildi: " + file.name);
+            }
+        } else {
+            label.style.background = "#242433";
+            label.style.color = "#a29bfe";
+            label.style.borderColor = "#333";
+            label.innerHTML = '<i class="fa-solid fa-paperclip"></i>';
+            label.setAttribute("title", "Döküman (PDF, TXT) veya Resim Ekle");
+        }
+    }
+
+    // Mesaj kutusunun otomatik en alta kayması
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>

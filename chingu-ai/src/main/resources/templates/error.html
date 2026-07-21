@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Hata</title>
+    <style>
+        body {
+            background: #0f0e17;
+            color: #fffffe;
+            font-family: monospace;
+            padding: 50px;
+            text-align: center;
+        }
+        .error-container {
+            background: #16161e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            border: 2px solid #ff6b6b;
+        }
+        h1 { color: #ff6b6b; }
+        .error-details {
+            background: #242433;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+            overflow-x: auto;
+        }
+        a { color: #6c5ce7; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="error-container">
+    <h1>❌ HATA OLUŞTU</h1>
+
+    <div class="error-details">
+        <strong>Hata Kodu:</strong> <span th:text="${status}"></span><br>
+        <strong>Mesaj:</strong> <span th:text="${message}"></span><br>
+        <strong>Detay:</strong> <span th:text="${error}"></span>
+    </div>
+
+    <p>⚠️ <strong>Lütfen konsolu kontrol et!</strong></p>
+    <a href="/login">← Giriş Sayfasına Dön</a>
+</div>
+</body>
+</html>
